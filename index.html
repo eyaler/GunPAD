@@ -31,7 +31,7 @@
 <body>
   <textarea id="textarea" dir="auto" placeholder="Type here."></textarea>
   <script>
-    const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun']
+    const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
     const pad = gun.get(location.hash.slice(1) || 'default')
     if (!navigator.onLine)
