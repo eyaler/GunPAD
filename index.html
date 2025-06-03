@@ -26,22 +26,45 @@
     textarea:read-only {
       background-color: rgba(255, 0, 0, .15);
     }
+
+    #banner {
+      background: red;
+      bottom: 0;
+      color: white;
+      inset-inline: 0;
+      position: fixed;
+      text-align: center;
+    }
+
+    .ok {
+      visibility: hidden;
+    }
   </style>
 </head>
 <body>
-  <textarea id="textarea" dir="auto" placeholder="Type here."></textarea>
+  <textarea id="textarea" autocomplete="off" dir="auto" placeholder="Type here."></textarea>
+  <div id="banner" class="ok"></div>
   <script>
     const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
     const pad = gun.get(location.hash.slice(1) || 'default')
-    if (!navigator.onLine)
-      textarea.readOnly = true
-    addEventListener('offline', () => textarea.readOnly = true)
-    addEventListener('online', () => {
+
+    function check_peers() {
       gun.opt(peers)
+      const error = !navigator.onLine || !Object.keys(gun._.opt.peers).length
+      banner.classList.toggle('ok', !error)
       pad.get('heartbeat').put('heartbeat')
-      textarea.removeAttribute('readonly')
-    })
+      textarea.readOnly = error
+      banner.textContent = ''
+      if (!navigator.onLine)
+        banner.textContent = 'Offline'
+      else if (error)
+        banner.textContent = 'No peers found'
+    }
+    check_peers()
+    addEventListener('online', check_peers)
+    addEventListener('offline', check_peers)
+
     textarea.addEventListener('input', () => pad.put({content: textarea.value}))
     pad.on(data => {
       const text = textarea.value
