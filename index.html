@@ -57,9 +57,9 @@
       textarea.readOnly = error
       banner.textContent = ''
       if (!navigator.onLine)
-        banner.textContent = 'Offline'
+        banner.textContent = 'OFFLINE'
       else if (error)
-        banner.textContent = 'No peers found'
+        banner.textContent = 'NO PEERS FOUND'
     }
     check_peers()
     addEventListener('online', check_peers)
