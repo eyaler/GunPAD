@@ -49,11 +49,13 @@
     const gun = Gun(peers)
     const pad = gun.get(location.hash.slice(1) || 'default')
 
-    function check_peers() {
-      gun.opt(peers)
+    function check_peers(event) {
+      if (event?.type == 'online') {
+        gun.opt(peers)
+        pad.get('heartbeat').put('heartbeat')
+      }
       const error = !navigator.onLine || !Object.keys(gun._.opt.peers).length
       banner.classList.toggle('ok', !error)
-      pad.get('heartbeat').put('heartbeat')
       textarea.readOnly = error
       banner.textContent = ''
       if (!navigator.onLine)
@@ -69,7 +71,7 @@
     pad.on(data => {
       const text = textarea.value
       const new_text = data.content
-      if (new_text != text) {
+      if ('content' in data && new_text != text) {
         const start = textarea.selectionStart
         const end = textarea.selectionEnd
         textarea.value = new_text
