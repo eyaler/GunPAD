@@ -49,6 +49,8 @@
     const gun = Gun(peers)
     const pad = gun.get(location.hash.slice(1) || 'default')
 
+    addEventListener('hashchange', () => location.reload())
+
     function check_peers(event) {
       if (event?.type == 'online') {
         gun.opt(peers)
