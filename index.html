@@ -71,17 +71,18 @@
     pad.on(data => {
       const text = textarea.value
       const new_text = data.content
+      let matched = true
       if ('content' in data && new_text != text) {
         const start = textarea.selectionStart
         const end = textarea.selectionEnd
         textarea.value = new_text
-        const delta = new_text.length - text.length
-        if (start < text.length && text.slice(start) == new_text.slice(start + delta))
-          textarea.setSelectionRange(start + delta, end + delta)
-        else if (text.slice(0, end) == new_text.slice(0, end))
+        const delta = new_text.length - text.length  
+        if (text.slice(0, end) == new_text.slice(0, end))
           textarea.setSelectionRange(start, end)
+        else if (text.slice(start) == new_text.slice(start + delta))
+          textarea.setSelectionRange(start + delta, end + delta)
         else if (end > start)
-          if (text.slice(0, start) == new_text.slice(0, start)) {
+          if (text.slice(0, start) == new_text.slice(0, start))
             if (text.slice(end) == new_text.slice(end + delta))
               textarea.setSelectionRange(start, end + delta)
             else {
@@ -90,12 +91,21 @@
                 i++
               textarea.setSelectionRange(start, i)
             }
-          } else if (text.slice(end) == new_text.slice(end + delta)) {
+          else if (text.slice(end) == new_text.slice(end + delta)) {
             let i = end
             while (text[i - 1] == new_text[i - 1 + delta])
               i--
             textarea.setSelectionRange(i + delta, end + delta)
-          }
+          } else
+            matched = false
+        else
+          matched = false
+      }
+      if (!matched) {
+        let i = 0
+        while (text[i] == new_text[i])
+          i++
+        textarea.setSelectionRange(i, i)
       }
     })
   </script>
