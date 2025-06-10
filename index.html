@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PAD</title>
   <script src="gun.min.js"></script>
   <!-- Uncomment to use Radisk/IndexedDB instead of localStorage:
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/radix.min.js"></script>
@@ -42,13 +41,15 @@
   </style>
 </head>
 <body>
-  <textarea id="textarea" autocomplete="off" dir="auto" placeholder="Type here."></textarea>
+  <textarea id="textarea" autocomplete="off" autofocus dir="auto" placeholder="Type here."></textarea>
   <div id="banner" class="ok"></div>
   <script>
     const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
-    const pad = gun.get(location.hash.slice(1) || 'default')
+    const id = location.hash.slice(1) || 'gunpad'
+    const pad = gun.get(id)
 
+    document.title = '🔫︎' + id
     addEventListener('hashchange', () => location.reload())
 
     function check_peers(event) {
