@@ -49,7 +49,7 @@
     const id = location.hash.slice(1) || 'gunpad'
     const pad = gun.get(id)
 
-    document.title = '🔫︎' + id
+    document.title = '🔫︎ ' + id
     addEventListener('hashchange', () => location.reload())
 
     function check_peers(event) {
