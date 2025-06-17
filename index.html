@@ -20,6 +20,7 @@
       padding: 1rem;
       position: absolute;
       resize: none;
+      tab-size: 1em;
     }
 
     textarea:read-only {
@@ -69,6 +70,21 @@
     check_peers()
     addEventListener('online', check_peers)
     addEventListener('offline', check_peers)
+
+    textarea.addEventListener('keydown', e => {
+      if (e.key == 'Tab' && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey) 
+      {
+        e.preventDefault()
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        textarea.selectionEnd = start
+        if (!e.shiftKey)
+          document.execCommand('insertText', false, '\t')
+        else if (textarea.value[textarea.selectionStart - 1]?.match(/\s/))
+          document.execCommand('delete')
+        textarea.selectionEnd = textarea.selectionStart + end - start
+      }
+    })
 
     textarea.addEventListener('input', () => pad.put({content: textarea.value}))
     pad.on(data => {
