@@ -75,7 +75,7 @@
     addEventListener('offline', check_peers)
 
     textarea.addEventListener('keydown', e => {
-      if (document.execCommand && (e.key == 'Enter' || e.key == 'Tab' && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey)) {
+      if (document.execCommand && (e.key == 'Enter' || e.key == 'Tab') && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         const start = textarea.selectionStart
         const text = textarea.value
