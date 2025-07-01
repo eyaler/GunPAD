@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/gun/gun.min.js"></script>
-  <!--
-      <script src="https://cdn.jsdelivr.net/npm/gun/lib/webrtc.min.js"></script>
-  -->
+  <script src="https://cdn.jsdelivr.net/npm/gun/lib/webrtc.min.js"></script>
   <!-- Uncomment to use Radisk/IndexedDB instead of localStorage (but note https://github.com/amark/gun/issues/1377#issuecomment-3023321255):
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/radix.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gun/lib/radisk.min.js"></script>
@@ -64,14 +62,18 @@
         gun.opt(peers)
         pad.get('heartbeat').put('heartbeat')
       }
-      const error = !navigator.onLine || !Object.keys(gun._.opt.peers).length
+      const connected_peers = Object.keys(gun._.opt.peers)
+      const error = !navigator.onLine || !connected_peers.length
       banner.classList.toggle('ok', !error)
       textarea.readOnly = error
-      banner.textContent = ''
       if (!navigator.onLine)
         banner.textContent = 'OFFLINE'
       else if (error)
         banner.textContent = 'NO PEERS FOUND'
+      else {
+        banner.textContent = ''    
+        peers.forEach(p => fetch(p + '/package.json').then(r => r.json().then(r => console.log(p, r.version))))
+      }
     }
     check_peers()
     addEventListener('online', check_peers)
