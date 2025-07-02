@@ -23,7 +23,7 @@
       padding: 1rem;
       position: absolute;
       resize: none;
-      tab-size: 1em;
+      tab-size: 2ch;
       width: 100%;
     }
 
@@ -91,7 +91,7 @@
           textarea.selectionEnd = start
           if (!e.shiftKey)
             document.execCommand('insertText', false, '\t')
-          else if (text[start - 1]?.match(/\s/))
+          else if (text[start - 1]?.match(/[ \t]/))
             document.execCommand('delete')
           textarea.selectionEnd = textarea.selectionStart + end - start
         }
