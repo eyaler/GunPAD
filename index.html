@@ -87,7 +87,7 @@
         if (e.key == 'Enter') {
           if (e.shiftKey) {
             const end = (text + '\n').indexOf('\n', start)
-            textarea.setSelectionRange(end, end)
+            textarea.selectionStart = end
           }
           document.execCommand('insertText', false, '\n' + text.slice(text.lastIndexOf('\n', start - 1) + 1).match(/^[ \t]*/))
         } else if (e.key == 'Tab') {
