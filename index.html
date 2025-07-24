@@ -51,8 +51,9 @@
   <script>
     const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
-    const id = location.hash.slice(1) || 'gunpad'
+    const id = (location.hash || location.search).slice(1) || 'gunpad'
     const pad = gun.get(id)
+    let grabbed
 
     document.title = id
     addEventListener('hashchange', () => location.reload())
@@ -106,6 +107,19 @@
     pad.on(data => {
       const text = textarea.value
       const new_text = data.content
+      
+      if (location.search && !location.hash && !grabbed)
+          for (word of new_text.split(/\s+/)) {
+            word = word.replace(/^\(|[),.]+$/g, '')
+            if (!word.includes('://') && word.match(/\w\.\w/))
+                word = 'https://' + word
+            try {
+                location = new URL(word)
+                break
+            } catch {}
+          }
+      grabbed = true
+      
       let matched = true
       if ('content' in data && new_text != text) {
         const start = textarea.selectionStart
