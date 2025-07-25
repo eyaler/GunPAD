@@ -112,10 +112,10 @@
           for (word of new_text.split(/\s+/)) {
             word = word.replace(/^\(|[),.]+$/g, '')
             if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
-                word = 'https://' + word
+              word = 'https://' + word
             try {
-                location = new URL(word)
-                break
+              location = new URL(word)
+              break
             } catch {}
           }
       grabbed = true
