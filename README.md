@@ -1,5 +1,5 @@
 # GunPAD
-A minimal [gunDB](https://github.com/amark/gun) collaborative notepad.
+A minimal [gunDB](https://gun.eco/) collaborative notepad.
 
 Add `#yournotepadname` to the URL for a designated notepad.
 
