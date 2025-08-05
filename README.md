@@ -5,7 +5,7 @@ Add `#yournotepadname` to the URL for a designated notepad.
 
 Short link: [tfi.la/g](https://tfi.la/g)
 
-*Warning: everything is ephemeral!*
+*Warning: Everything is ephemeral!*
 
 ### Use as a temporary URL shortener
 

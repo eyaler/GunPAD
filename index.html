@@ -73,7 +73,7 @@
         banner.textContent = 'NO PEERS FOUND'
       else {
         banner.textContent = ''    
-        peers.forEach(p => fetch(p + '/package.json').then(r => r.json().then(r => console.log(p, r.version))))
+        peers.forEach(p => fetch(p + '/package.json').catch(() => {}).then(r => r.json().then(r => console.log(p, r.version))).catch(() => {}))
       }
     }
     check_peers()
@@ -86,18 +86,23 @@
         const start = textarea.selectionStart
         const text = textarea.value
         if (e.key == 'Enter') {
-          if (e.shiftKey) {
-            const end = (text + '\n').indexOf('\n', start)
-            textarea.selectionStart = end
-          }
-          document.execCommand('insertText', false, '\n' + text.slice(text.lastIndexOf('\n', start - 1) + 1).match(/^[ \t]*/))
+          let slice_end
+          if (e.shiftKey)
+            textarea.selectionStart = textarea.selectionEnd = (text + '\n').indexOf('\n', start)
+          else
+            slice_end = start
+          document.execCommand('insertText', false, '\n' + text.slice(text.lastIndexOf('\n', start - 1) + 1, slice_end).match(/^[ \t]*/))
         } else if (e.key == 'Tab') {
-          const end = textarea.selectionEnd
+          let end = textarea.selectionEnd
           textarea.selectionEnd = start
           if (!e.shiftKey)
             document.execCommand('insertText', false, '\t')
           else if (text[start - 1]?.match(/[ \t]/))
             document.execCommand('delete')
+          else if (text[start].match(/[ \t]/)) {
+            document.execCommand('forwardDelete')
+            end -= end > start
+          }
           textarea.selectionEnd = textarea.selectionStart + end - start
         }
       }
@@ -124,27 +129,28 @@
       if ('content' in data && new_text != text) {
         const start = textarea.selectionStart
         const end = textarea.selectionEnd
+        const dir = textarea.selectionDirection
         textarea.value = new_text
         const delta = new_text.length - text.length  
         if (text.slice(0, end) == new_text.slice(0, end))
-          textarea.setSelectionRange(start, end)
+          textarea.setSelectionRange(start, end, dir)
         else if (text.slice(start) == new_text.slice(start + delta))
-          textarea.setSelectionRange(start + delta, end + delta)
+          textarea.setSelectionRange(start + delta, end + delta, dir)
         else if (end > start)
           if (text.slice(0, start) == new_text.slice(0, start))
             if (text.slice(end) == new_text.slice(end + delta))
-              textarea.setSelectionRange(start, end + delta)
+              textarea.setSelectionRange(start, end + delta, dir)
             else {
               let i = start
               while (text[i] == new_text[i])
                 i++
-              textarea.setSelectionRange(start, i)
+              textarea.setSelectionRange(start, i, dir)
             }
           else if (text.slice(end) == new_text.slice(end + delta)) {
             let i = end
             while (text[i - 1] == new_text[i - 1 + delta])
               i--
-            textarea.setSelectionRange(i + delta, end + delta)
+            textarea.setSelectionRange(i + delta, end + delta, dir)
           } else
             matched = false
         else
