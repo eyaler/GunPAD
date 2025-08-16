@@ -73,7 +73,12 @@
         banner.textContent = 'NO PEERS FOUND'
       else {
         banner.textContent = ''    
-        peers.forEach(p => fetch(p + '/package.json').catch(() => {}).then(r => r.json().then(r => console.log(p, r.version))).catch(() => {}))
+        connected_peers.forEach(p => {
+          if (p.startsWith('http'))
+            fetch(p + '/package.json').catch(() => {}).then(r => r.json().then(r => console.log(p, r.version))).catch(() => {})
+          else
+            console.log(p, '(WebRTC)')
+        })
       }
     }
     check_peers()
