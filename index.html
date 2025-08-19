@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/gun/gun.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gun/lib/webrtc.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1241/gun.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1241/lib/webrtc.min.js"></script>
   <!-- Uncomment to use Radisk/IndexedDB instead of localStorage (but note https://github.com/amark/gun/issues/1377#issuecomment-3023321255):
-    <script src="https://cdn.jsdelivr.net/npm/gun/lib/radix.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gun/lib/radisk.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gun/lib/store.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gun/lib/rindexed.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1241/lib/radix.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1241/lib/radisk.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1241/lib/rindexed.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun@0.2020.1241/lib/store.min.js"></script>
   -->
   <style>
     textarea {
@@ -49,6 +49,7 @@
   <textarea id="textarea" autocomplete="off" autofocus dir="auto" placeholder="Type here."></textarea>
   <div id="banner" class="ok"></div>
   <script>
+    'use strict'
     const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
     const id = (location.hash || location.search).slice(1) || 'gunpad'
