@@ -141,7 +141,7 @@
       const new_text = data.content
       
       if (location.search && !location.hash && !grabbed)
-          for (word of new_text.split(/\s+/)) {
+          for (let word of new_text.split(/\s+/)) {
             word = word.replace(/^\(|[),.]+$/g, '')
             if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
               word = 'https://' + word
