@@ -54,7 +54,7 @@
     const gun = Gun(peers)
     const id = (location.hash || location.search).slice(1) || 'gunpad'
     const pad = gun.get(id)
-    let grabbed
+    let prev_key, grabbed
 
     document.title = id
     addEventListener('hashchange', () => location.reload())
@@ -86,24 +86,64 @@
     addEventListener('online', check_peers)
     addEventListener('offline', check_peers)
 
-    textarea.addEventListener('keydown', e => {
-      if (document.execCommand && (e.key == 'Enter' || e.key == 'Tab') && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey) {
+    textarea.addEventListener('copy', e => {  // With no selection - Duplicate line
+      if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
-        const text = textarea.value
+        const text = textarea.value + '\n'
         const start = textarea.selectionStart
+        const transposed = text.slice(start, text.indexOf('\n', start) + 1) + text.slice(text.lastIndexOf('\n', start - 1) + 1, start)
+        document.execCommand('insertText', false, transposed)
+        textarea.setSelectionRange(start + transposed.length, start + transposed.length)
+      }
+    })
+    
+    document.addEventListener('pointerdown', () => prev_key = null)
+    
+    textarea.addEventListener('keydown', e => {
+      if (document.execCommand && ['Enter', 'Home', 'End', 'Tab'].includes(e.key) && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey) {
+        if (e.key != 'End' || prev_key == 'End')
+          e.preventDefault()
+        const text = textarea.value
+        let start = textarea.selectionStart
         let end = textarea.selectionEnd
-        if (e.key == 'Enter') {
+        if (e.key == 'Enter') {  // New line with current or coding-language-based extra indentation
           let slice_end
-          if (e.shiftKey)  // Start new line with indentation below cursor (ignore selection)
+          if (e.shiftKey)  // Skip to line end beforehand
             textarea.selectionStart = textarea.selectionEnd = (text + '\n').indexOf('\n', textarea.selectionDirection == 'backward' ? start : end)
           else
             slice_end = start
           const line_start = text.lastIndexOf('\n', start - 1) + 1
           let indent = '\n' + text.slice(line_start, slice_end).match(/^[ \t]*/)
-          if (text.slice(line_start, textarea.selectionStart).match(/([{[(:]|=>)\s*$/))
+          if (text.slice(line_start, textarea.selectionStart).match(/([{[(:]|=>|<(div|g|p)\b[^>]*>)\s*$/))
             indent += indent.endsWith(' ') ? '  ' : '\t'
           document.execCommand('insertText', false, indent)
-        } else if (e.key == 'Tab') {
+        } else if (e.key == 'Home') {  // Move caret to indentation; if already there, move to logical line start (`Shift` for selection)
+          const [caret, anti_caret] = textarea.selectionDirection == 'backward' ? [start, end] : [end, start]
+          const line_start = text.lastIndexOf('\n', caret - 1) + 1
+          const whitespace = text.slice(line_start).match(/^[ \t]*/)[0].length
+          const indent = line_start + (caret == line_start + whitespace ? 0 : whitespace)
+          start = Math.max(start, anti_caret)
+          if (e.shiftKey && start < indent) {
+            textarea.selectionStart = start
+            textarea.selectionDirection = 'forward'
+          } else
+            textarea.selectionStart = indent
+          if (e.shiftKey && anti_caret > indent) {
+            textarea.selectionEnd = anti_caret
+            textarea.selectionDirection = 'backward'
+          } else
+            textarea.selectionEnd = indent
+        } else if (e.key == 'End' && prev_key == 'End') {  // For wrapped lines, second press moves caret to logical line end (`Shift` for selection)
+          console.log('hi')
+          const caret = (text + '\n').indexOf('\n', start)
+          if (e.shiftKey && textarea.selectionEnd > caret && textarea.selectionDirection == 'backward')
+            textarea.selectionStart = caret
+          else {
+            textarea.selectionEnd = caret
+            if (!e.shiftKey)
+              textarea.selectionStart = caret
+          }
+        } else if (e.key == 'Tab') {  // Indent / unindent at caret or selection start
           textarea.selectionEnd = start
           if (!e.shiftKey)
             document.execCommand('insertText', false, '\t')
@@ -132,7 +172,9 @@
           }
           textarea.selectionEnd = textarea.selectionStart + end - start
         }
-      }
+        prev_key = e.key
+      } else if (e.key != 'Shift')
+        prev_key = null
     })
 
     textarea.addEventListener('input', () => pad.put({content: textarea.value}))
