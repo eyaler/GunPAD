@@ -85,7 +85,7 @@
     check_peers()
     addEventListener('online', check_peers)
     addEventListener('offline', check_peers)
-
+    
     textarea.addEventListener('copy', e => {  // With no selection - Duplicate line
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
@@ -134,7 +134,6 @@
           } else
             textarea.selectionEnd = indent
         } else if (e.key == 'End' && prev_key == 'End') {  // For wrapped lines, second press moves caret to logical line end (`Shift` for selection)
-          console.log('hi')
           const caret = (text + '\n').indexOf('\n', start)
           if (e.shiftKey && textarea.selectionEnd > caret && textarea.selectionDirection == 'backward')
             textarea.selectionStart = caret
@@ -176,7 +175,7 @@
       } else if (e.key != 'Shift')
         prev_key = null
     })
-
+    
     textarea.addEventListener('input', () => pad.put({content: textarea.value}))
     pad.on(data => {
       const text = textarea.value
