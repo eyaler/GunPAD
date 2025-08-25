@@ -97,7 +97,7 @@
       }
     })
     
-    document.addEventListener('pointerdown', () => prev_key = null)
+    textarea.addEventListener('pointerdown', () => prev_key = null)
     
     textarea.addEventListener('keydown', e => {
       if (document.execCommand && ['Enter', 'Home', 'End', 'Tab'].includes(e.key) && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey) {
