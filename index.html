@@ -54,7 +54,7 @@
     const gun = Gun(peers)
     const id = (location.hash || location.search).slice(1) || 'gunpad'
     const pad = gun.get(id)
-    let prev_key, grabbed
+    let prev_key, grabbed, wait
 
     document.title = id
     addEventListener('hashchange', () => location.reload())
@@ -94,6 +94,24 @@
         const transposed = text.slice(start, text.indexOf('\n', start) + 1) + text.slice(text.lastIndexOf('\n', start - 1) + 1, start)
         document.execCommand('insertText', false, transposed)
         textarea.setSelectionRange(start + transposed.length, start + transposed.length)
+      }
+    })
+    
+    textarea.addEventListener('cut', e => {  // With no selection - Delete line
+      if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
+        e.preventDefault()
+        const text = textarea.value + '\n'
+        let start = textarea.selectionStart
+        const line_start = text.lastIndexOf('\n', start - 1) + 1
+        const line_end = text.indexOf('\n', start) + 1
+        const next_line_end = text.indexOf('\n', line_end)
+        textarea.setSelectionRange(Math.max(0, line_start + Math.min(0, next_line_end)), line_end)
+        document.execCommand('delete')
+        if (next_line_end == -1)
+          start = Math.min(line_start - 1, start - line_start + ('\n' + text).lastIndexOf('\n', line_start - 1))
+        else
+          start = Math.min(start, line_start - line_end + next_line_end)
+        textarea.setSelectionRange(start, start)
       }
     })
     
@@ -152,16 +170,22 @@
             document.execCommand('forwardDelete')
             end -= end > start
           } else if (start > 1 && text.slice(start - 2, start) == '  ') {
+            wait = true
             document.execCommand('delete')
+            wait = false
             document.execCommand('delete')
           } else if (start && text.slice(start - 1, start + 1) == '  ') {
+            wait = true
             document.execCommand('delete')
+            wait = false
             document.execCommand('forwardDelete')
             end -= end > start
           } else if (text[start - 1] == ' ')
             document.execCommand('delete')
           else if (text.slice(start, start + 2) == '  ') {
+            wait = true
             document.execCommand('forwardDelete')
+            wait = false
             document.execCommand('forwardDelete')
             end -= end > start
             end -= end > start
@@ -176,11 +200,14 @@
         prev_key = null
     })
     
-    textarea.addEventListener('input', () => pad.put({content: textarea.value}))
+    textarea.addEventListener('input', () => {
+      if (!wait)
+        pad.put({content: textarea.value})
+    })
+    
     pad.on(data => {
       const text = textarea.value
       const new_text = data.content
-      
       if (location.search && !location.hash && !grabbed)
           for (let word of new_text.split(/\s+/)) {
             word = word.replace(/^\(|[),.]+$/g, '')
