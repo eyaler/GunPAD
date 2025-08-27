@@ -54,7 +54,7 @@
     const gun = Gun(peers)
     const id = (location.hash || location.search).slice(1) || 'gunpad'
     const pad = gun.get(id)
-    let prev_key, grabbed, wait
+    let prev_key, grabbed, skip_put
 
     document.title = id
     addEventListener('hashchange', () => location.reload())
@@ -170,22 +170,22 @@
             document.execCommand('forwardDelete')
             end -= end > start
           } else if (start > 1 && text.slice(start - 2, start) == '  ') {
-            wait = true
+            skip_put = true
             document.execCommand('delete')
-            wait = false
+            skip_put = false
             document.execCommand('delete')
           } else if (start && text.slice(start - 1, start + 1) == '  ') {
-            wait = true
+            skip_put = true
             document.execCommand('delete')
-            wait = false
+            skip_put = false
             document.execCommand('forwardDelete')
             end -= end > start
           } else if (text[start - 1] == ' ')
             document.execCommand('delete')
           else if (text.slice(start, start + 2) == '  ') {
-            wait = true
+            skip_put = true
             document.execCommand('forwardDelete')
-            wait = false
+            skip_put = false
             document.execCommand('forwardDelete')
             end -= end > start
             end -= end > start
@@ -201,7 +201,7 @@
     })
     
     textarea.addEventListener('input', () => {
-      if (!wait)
+      if (!skip_put)
         pad.put({content: textarea.value})
     })
     
