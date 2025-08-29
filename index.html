@@ -73,7 +73,7 @@
       else if (error)
         banner.textContent = 'NO PEERS FOUND'
       else {
-        banner.textContent = ''    
+        banner.textContent = ''
         connected_peers.forEach(p => {
           if (p.startsWith('http'))
             fetch(p + '/package.json').catch(() => {}).then(r => r.json().then(r => console.log(p, r.version))).catch(() => {})
@@ -226,7 +226,7 @@
         const end = textarea.selectionEnd
         const dir = textarea.selectionDirection
         textarea.value = new_text
-        const delta = new_text.length - text.length  
+        const delta = new_text.length - text.length
         if (text.slice(0, end) == new_text.slice(0, end))
           textarea.setSelectionRange(start, end, dir)
         else if (text.slice(start) == new_text.slice(start + delta))
