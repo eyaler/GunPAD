@@ -50,6 +50,9 @@
   <div id="banner" class="ok"></div>
   <script>
     'use strict'
+    
+    const uniform_block_comments = true
+    
     const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
     const id = (location.hash || location.search).slice(1) || 'gunpad'
@@ -86,13 +89,24 @@
     addEventListener('online', check_peers)
     addEventListener('offline', check_peers)
     
+    function safe_last_index_of_newline(text, pos) {
+      return (pos > 0) * (text.lastIndexOf('\n', pos - 1) + 1)
+    }
+    
+    function safe_insert(text, len) {  // Protect from Chromium issues: https://issues.chromium.org/issues/442551790 , https://issues.chromium.org/issues/442600643
+      if (text)
+        document.execCommand('insertText', false, text)
+      else if (len)
+        document.execCommand('delete')
+    }
+    
     textarea.addEventListener('copy', e => {  // With no selection - Duplicate line
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
         const text = textarea.value + '\n'
         const start = textarea.selectionStart
-        const transposed = text.slice(start, text.indexOf('\n', start) + 1) + text.slice(text.lastIndexOf('\n', start - 1) + 1, start)
-        document.execCommand('insertText', false, transposed)
+        const transposed = text.slice(start, text.indexOf('\n', start) + 1) + text.slice(safe_last_index_of_newline(text, start), start)
+        safe_insert(transposed)
         textarea.setSelectionRange(start + transposed.length, start + transposed.length)
       }
     })
@@ -101,48 +115,56 @@
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
         const text = textarea.value + '\n'
-        let start = textarea.selectionStart
-        const line_start = text.lastIndexOf('\n', start - 1) + 1
+        const start = textarea.selectionStart
+        const line_start = safe_last_index_of_newline(text, start)
         const line_end = text.indexOf('\n', start) + 1
         const next_line_end = text.indexOf('\n', line_end)
         textarea.setSelectionRange(Math.max(0, line_start + Math.min(0, next_line_end)), line_end)
         document.execCommand('delete')
+        let caret
         if (next_line_end == -1)
-          start = Math.min(line_start - 1, start - line_start + ('\n' + text).lastIndexOf('\n', line_start - 1))
+          caret = Math.min(line_start - 1, safe_last_index_of_newline(text, line_start - 1) + start - line_start)
         else
-          start = Math.min(start, line_start - line_end + next_line_end)
-        textarea.setSelectionRange(start, start)
+          caret = Math.min(start, line_start + next_line_end - line_end)
+        textarea.setSelectionRange(caret, caret)
       }
     })
     
     textarea.addEventListener('pointerdown', () => prev_key = null)
     
     textarea.addEventListener('keydown', e => {
-      if (document.execCommand && ['Enter', 'Home', 'End', 'Tab'].includes(e.key) && !e.altKey && !e.getModifierState?.('AltGraph') && !e.ctrlKey && !e.metaKey) {
+      if (document.execCommand && !e.altKey && !e.getModifierState?.('AltGraph')
+          && (['Enter', 'Home', 'End', 'Tab'].includes(e.key) && !e.ctrlKey && !e.metaKey
+              || e.key == '/' && (e.ctrlKey || e.metaKey) && !e.shiftKey)) {
         if (e.key != 'End' || prev_key == 'End')
           e.preventDefault()
         const text = textarea.value
-        let start = textarea.selectionStart
-        let end = textarea.selectionEnd
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const dir = textarea.selectionDirection
+        
         if (e.key == 'Enter') {  // New line with current or coding-language-based extra indentation
+          let caret = start
           let slice_end
           if (e.shiftKey)  // Skip to line end beforehand
-            textarea.selectionStart = textarea.selectionEnd = (text + '\n').indexOf('\n', textarea.selectionDirection == 'backward' ? start : end)
+            caret = textarea.selectionStart = textarea.selectionEnd = (text + '\n').indexOf('\n', dir == 'backward' ? start : end)
           else
             slice_end = start
-          const line_start = text.lastIndexOf('\n', start - 1) + 1
-          let indent = '\n' + text.slice(line_start, slice_end).match(/^[ \t]*/)
-          if (text.slice(line_start, textarea.selectionStart).match(/([{[(:]|=>|<(div|g|p)\b[^>]*>)\s*$/))
+          const line_start = safe_last_index_of_newline(text, caret)
+          let indent = '\n' + text.slice(line_start, slice_end).match(/^[\t ]*/)
+          if (text.slice(line_start, caret).match(/([{[(:]|=>|<(div|g|p)\b[^>]*>)\s*$/))
             indent += indent.endsWith(' ') ? '  ' : '\t'
-          document.execCommand('insertText', false, indent)
-        } else if (e.key == 'Home') {  // Move caret to indentation; if already there, move to logical line start (`Shift` for selection)
-          const [caret, anti_caret] = textarea.selectionDirection == 'backward' ? [start, end] : [end, start]
-          const line_start = text.lastIndexOf('\n', caret - 1) + 1
-          const whitespace = text.slice(line_start).match(/^[ \t]*/)[0].length
+          safe_insert(indent)
+        }
+        
+        else if (e.key == 'Home') {  // Move caret to indentation; if already there, move to logical line start (`Shift` for selection)
+          let [caret, anti_caret] = dir == 'backward' ? [start, end] : [end, start]
+          const line_start = safe_last_index_of_newline(text, caret)
+          const whitespace = text.slice(line_start).match(/^[\t ]*/)[0].length
           const indent = line_start + (caret == line_start + whitespace ? 0 : whitespace)
-          start = Math.max(start, anti_caret)
-          if (e.shiftKey && start < indent) {
-            textarea.selectionStart = start
+          caret = Math.max(start, anti_caret)
+          if (e.shiftKey && caret < indent) {
+            textarea.selectionStart = caret
             textarea.selectionDirection = 'forward'
           } else
             textarea.selectionStart = indent
@@ -151,25 +173,41 @@
             textarea.selectionDirection = 'backward'
           } else
             textarea.selectionEnd = indent
-        } else if (e.key == 'End' && prev_key == 'End') {  // For wrapped lines, second press moves caret to logical line end (`Shift` for selection)
+        }
+        
+        else if (e.key == 'End' && prev_key == 'End') {  // For wrapped lines, second press moves caret to logical line end (`Shift` for selection)
           const caret = (text + '\n').indexOf('\n', start)
-          if (e.shiftKey && textarea.selectionEnd > caret && textarea.selectionDirection == 'backward')
+          if (e.shiftKey && textarea.selectionEnd > caret && dir == 'backward')
             textarea.selectionStart = caret
           else {
             textarea.selectionEnd = caret
             if (!e.shiftKey)
               textarea.selectionStart = caret
           }
-        } else if (e.key == 'Tab') {  // Indent / unindent at caret or selection start
-          textarea.selectionEnd = start
-          if (!e.shiftKey)
-            document.execCommand('insertText', false, '\t')
+        }
+        
+        else if (e.key == 'Tab') {  // Indent / unindent at caret or multi-line for selection
+          if (end > start) {
+            const block_start = safe_last_index_of_newline(text, start)
+            let indented = text.slice(block_start, end)
+            let new_start
+            if (e.shiftKey) {
+              indented = indented.replace(/(?<=^|\n(?!$))(\t| {1,2})/g, '')
+              new_start = Math.max(start - 1, block_start)
+            } else {
+              indented = '\t' + indented.replace(/\n(?!$)/g, '\n\t')
+              new_start = start + 1
+            }
+            textarea.selectionStart = block_start
+            safe_insert(indented, end - start)
+            textarea.setSelectionRange(new_start, block_start + indented.length, dir)
+          } else if (!e.shiftKey)
+            safe_insert('\t')
           else if (text[start - 1] == '\t')
             document.execCommand('delete')
-          else if (text[start] == '\t') {
+          else if (text[start] == '\t')
             document.execCommand('forwardDelete')
-            end -= end > start
-          } else if (start > 1 && text.slice(start - 2, start) == '  ') {
+          else if (start > 1 && text.slice(start - 2, start) == '  ') {
             skip_put = true
             document.execCommand('delete')
             skip_put = false
@@ -179,7 +217,6 @@
             document.execCommand('delete')
             skip_put = false
             document.execCommand('forwardDelete')
-            end -= end > start
           } else if (text[start - 1] == ' ')
             document.execCommand('delete')
           else if (text.slice(start, start + 2) == '  ') {
@@ -187,13 +224,45 @@
             document.execCommand('forwardDelete')
             skip_put = false
             document.execCommand('forwardDelete')
-            end -= end > start
-            end -= end > start
-          } else if (text[start] == ' ') {
+          } else if (text[start] == ' ')
             document.execCommand('forwardDelete')
-            end -= end > start
+        }
+        
+        else if (e.key == '/') {  // Multi-line `//` comment / uncomment
+          const block_start = safe_last_index_of_newline(text, start)
+          let block_end = end
+          if (start == end || text[end - 1] != '\n')
+            block_end = (text + '\n').indexOf('\n', end)
+          const block = text.slice(block_start, block_end)
+          if (start == end && end == block_end && !block.trim())
+            safe_insert('// ')
+          else {
+            const offsets = []
+            let missing
+            let min_indent
+            let commented = block.replace(/(?<=^|\n(?!$))(?=[\t ]*\S|(?<=^)[^\n]*[\n]?$)([\t ]*)(\/\/ ?)?/g, (m, p1, p2, offset) => {
+              offsets.push([block_start + offset + p1.length, (p2 || '').length])
+              missing ||= !p2
+              min_indent ??= p1
+              for (const i in min_indent)
+                if (min_indent[i] != p1[i]) {
+                  min_indent = min_indent.slice(0, i)
+                  break
+                }
+              return p2 ? p1 : p1 + '// '
+            })
+            if (offsets.length) {
+              textarea.selectionStart = block_start
+              textarea.selectionEnd = block_end
+              if (uniform_block_comments && offsets.length > 1 && missing)
+                commented = block.replace(RegExp(`(?<=(^|\n)${min_indent})(?=[\t ]*\\S)`, 'g'), '// ')
+              safe_insert(commented, block_end - block_start)
+              const new_start = start + (start >= offsets[0][0])*(offsets[0][1] ? -Math.min(offsets[0][1], start - offsets[0][0]) : 3)
+              const last = offsets[offsets.length - 1]
+              const new_end = block_start + commented.length + end - block_end - (end <= last[0] + last[1])*(last[1] ? -Math.min(last[1], last[0] + last[1] - end) : 3)
+              textarea.setSelectionRange(new_start, new_end, dir)
+            }
           }
-          textarea.selectionEnd = textarea.selectionStart + end - start
         }
         prev_key = e.key
       } else if (e.key != 'Shift')
