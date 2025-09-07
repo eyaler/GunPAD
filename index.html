@@ -61,7 +61,7 @@
     const gun = Gun(peers)
     const id = (location.hash || location.search).slice(1) || 'gunpad'
     const pad = gun.get(id)
-    let prev_key, grabbed, skip_put
+    let prev_key, changed, skip_put
 
     document.title = id
     addEventListener('hashchange', () => location.reload())
@@ -274,6 +274,7 @@
     })
     
     textarea.addEventListener('input', () => {
+      changed = true
       if (!skip_put)
         pad.put({content: textarea.value})
     })
@@ -281,7 +282,7 @@
     pad.on(data => {
       const text = textarea.value
       const new_text = data.content
-      if (location.search && !location.hash && !grabbed)
+      if (location.search && !location.hash && !changed)
           for (let word of new_text.split(/\s+/)) {
             word = word.replace(/^\(|[),.]+$/g, '')
             if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
@@ -291,7 +292,7 @@
               break
             } catch {}
           }
-      grabbed = true
+      changed = true
       
       let matched = true
       if ('content' in data && new_text != text) {
