@@ -59,7 +59,7 @@
     
     const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
     const gun = Gun(peers)
-    const id = (location.hash || location.search).slice(1) || 'gunpad'
+    const id = (location.hash || location.search.split(/[=&]/)[0]).slice(1) || 'gunpad'
     const pad = gun.get(id)
     let prev_key, changed, skip_put
 
@@ -283,15 +283,15 @@
       const text = textarea.value
       const new_text = data.content
       if (location.search && !location.hash && !changed)
-          for (let word of new_text.split(/\s+/)) {
-            word = word.replace(/^\(|[),.]+$/g, '')
-            if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
-              word = 'https://' + word
-            try {
-              location = new URL(word)
-              break
-            } catch {}
-          }
+        for (let word of new_text.split(/\s+/)) {
+          word = word.replace(/^\(|[),.]+$/g, '')
+          if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
+            word = 'https://' + word
+          try {
+            location = new URL(word)
+            break
+          } catch {}
+        }
       changed = true
       
       let matched = true
