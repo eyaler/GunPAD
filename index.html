@@ -106,7 +106,7 @@
         document.execCommand('delete')
     }
     
-    textarea.addEventListener('copy', e => {  // With no selection - Duplicate line
+    textarea.addEventListener('copy', e => {  // When no selection - Duplicate line
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
         const text = textarea.value + '\n'
@@ -117,7 +117,7 @@
       }
     })
     
-    textarea.addEventListener('cut', e => {  // With no selection - Delete line
+    textarea.addEventListener('cut', e => {  // When no selection - Delete line
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
         const text = textarea.value + '\n'
@@ -141,7 +141,7 @@
     textarea.addEventListener('keydown', e => {
       if (document.execCommand && !e.altKey && !e.getModifierState?.('AltGraph')
           && ((['Enter', 'Home', 'End', 'Tab'].includes(e.key) || e.key == 'Escape' && !e.shiftKey) && !e.ctrlKey && !e.metaKey
-              || e.key == '/' && (e.ctrlKey && !is_mac || e.metaKey && is_mac) && !e.shiftKey)) {
+              || (e.key == '/' || e.code == 'Slash') && (e.ctrlKey && !is_mac || e.metaKey && is_mac) && !e.shiftKey)) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape')
           e.preventDefault()
         const text = textarea.value
@@ -239,7 +239,7 @@
             document.execCommand('forwardDelete')
         }
 
-        else if (e.key == '/') {  // Multi-line `//` comment / uncomment
+        else if (e.key == '/' || e.code == 'Slash') {  // Multi-line `//` comment / uncomment
           const block_start = safe_last_index_of_newline(text, start)
           let block_end = end
           if (start == end || text[end - 1] != '\n')
