@@ -68,8 +68,8 @@
     document.title = id
     addEventListener('hashchange', () => location.reload())
 
-    function check_peers(event) {
-      if (event?.type == 'online') {
+    function check_peers(e) {
+      if (e?.type == 'online') {
         gun.opt(peers)
         pad.get('heartbeat').put('heartbeat')
       }
@@ -141,7 +141,7 @@
     textarea.addEventListener('keydown', e => {
       if (document.execCommand && !e.altKey && !e.getModifierState?.('AltGraph')
           && ((['Enter', 'Home', 'End', 'Tab'].includes(e.key) || e.key == 'Escape' && !e.shiftKey) && !e.ctrlKey && !e.metaKey
-              || (e.key == '/' || e.code == 'Slash') && (e.ctrlKey && !is_mac || e.metaKey && is_mac) && !e.shiftKey)) {
+              || (e.key == '/' || e.code == 'Slash') && (e.ctrlKey && !is_mac && !e.metaKey || e.metaKey && is_mac && !e.ctrlKey) && !e.shiftKey)) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape')
           e.preventDefault()
         const text = textarea.value
