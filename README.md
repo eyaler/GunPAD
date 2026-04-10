@@ -21,3 +21,6 @@ You can omit the `/g` from the short link, e.g. [tfi.la?short](https://tfi.la?sh
 - `Ctrl`+`C` with no selection - Duplicate line
 - `Ctrl`+`X` with no selection - Delete line
 - `Ctrl`+`/` - Multi-line `//` comment / uncomment
+
+
+On Mac use `⌘ Command` anywhere `Ctrl` is mentioned above
