@@ -140,7 +140,7 @@
     
     textarea.addEventListener('keydown', e => {
       if (document.execCommand && !e.altKey && !e.getModifierState?.('AltGraph')
-          && ((['Enter', 'Home', 'End', 'Tab'].includes(e.key) || e.key == 'Escape' && !e.shiftKey) && !e.ctrlKey && !e.metaKey
+          && ((['Enter', 'Tab'].includes(e.key) || ['Home', 'End'].includes(e.key) && !is_mac || e.key == 'Escape' && !e.shiftKey) && !e.ctrlKey && !e.metaKey
               || (e.key == '/' || e.code == 'Slash') && (e.ctrlKey && !is_mac && !e.metaKey || e.metaKey && is_mac && !e.ctrlKey) && !e.shiftKey)) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape')
           e.preventDefault()
