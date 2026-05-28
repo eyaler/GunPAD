@@ -63,7 +63,7 @@
     const pad = gun.get(id)
     let prev_key, changed, skip_put
 
-    const is_mac = navigator.platform.startsWith('Mac') || navigator.platform == 'iPhone'
+    const is_mac = navigator.platform.startsWith('Mac') || navigator.platform.startsWith('iP')
 
     document.title = id
     addEventListener('hashchange', () => location.reload())
