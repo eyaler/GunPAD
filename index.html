@@ -57,7 +57,11 @@
 
     const uniform_block_comments = true
     
-    const peers = ['https://gun-manhattan.herokuapp.com/gun', 'https://try.axe.eco/gun', 'https://test.era.eco/gun', 'https://peer.wallie.io/gun']
+    const peers = ['https://gun-manhattan.herokuapp.com/gun',
+                   'https://try.axe.eco/gun',
+                   'https://test.era.eco/gun',
+                   'https://peer.wallie.io/gun',
+                  ]
     const gun = Gun(peers)
     const id = (location.hash || location.search.split(/[=&]/)[0]).slice(1) || 'gunpad'
     const pad = gun.get(id)
@@ -137,11 +141,25 @@
     })
     
     textarea.addEventListener('pointerdown', () => prev_key = null)
-    
+
+    function get_layout_key(e) {
+      let key = e.key.toLowerCase()
+      if (!e.key.match(/^[a-z]$/) && e.code.match(/^Key[A-Z]$/))  // For Hebrew keyboard
+        key = e.code[3].toLowerCase()
+      return key
+    }
+
     textarea.addEventListener('keydown', e => {
+      const layout_key = get_layout_key(e)
       if (document.execCommand && !e.altKey && !e.getModifierState?.('AltGraph')
-          && ((['Enter', 'Tab'].includes(e.key) || ['Home', 'End'].includes(e.key) && !is_mac || e.key == 'Escape' && !e.shiftKey) && !e.ctrlKey && !e.metaKey
-              || (e.key == '/' || e.code == 'Slash') && e.ctrlKey != is_mac && e.metaKey == is_mac && !e.shiftKey)) {
+          && ((['Enter', 'Tab'].includes(e.key) ||
+               ['Home', 'End'].includes(e.key) && !is_mac ||
+               e.key == 'Escape' && !e.shiftKey
+              ) && !e.ctrlKey && !e.metaKey
+              || ((e.key == '/' || e.code == 'Slash') && !e.shiftKey ||
+                  layout_key == 'o' && e.shiftKey
+              ) && e.ctrlKey != is_mac && e.metaKey == is_mac
+             )) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape')
           e.preventDefault()
         const text = textarea.value
@@ -275,6 +293,27 @@
             }
           }
         }
+
+        else if (layout_key == 'o') {  // Open any (partially) selected links in new tabs
+          const block_start = start - (start == end || text[start]?.trim() ? text.slice(0, start).match(/\S*$/)[0].length : 0)
+          const block_end = end + (start == end || text[end - 1]?.trim() ? text.slice(end).match(/^\S*/)[0].length : 0)
+          const words = text.slice(block_start, block_end).trim().split(/\s+/)
+          if (!navigator.userAgent.includes('Chrome'))
+            words.reverse()
+          for (let word of words) {
+            word = word.replace(/^\(|[),.]+$/g, '')
+            if (!word)
+              continue
+            if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
+              word = 'https://' + word
+
+            try {
+              new URL(word)
+              open(word, '_blank')
+            } catch {}
+          }
+        }
+
         prev_key = e.key
       } else if (e.key != 'Shift')
         prev_key = null
@@ -289,9 +328,11 @@
     pad.on(data => {
       const text = textarea.value
       const new_text = data.content
-      if (location.search && !location.hash && !changed)
-        for (let word of new_text.split(/\s+/)) {
+      if (location.search && !location.search.startsWith('?_ijt') && !location.hash && !changed)
+        for (let word of new_text.trim().split(/\s+/)) {
           word = word.replace(/^\(|[),.]+$/g, '')
+          if (!word)
+            continue
           if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
             word = 'https://' + word
           try {

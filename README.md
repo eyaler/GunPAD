@@ -20,5 +20,6 @@ You can omit the `/g` from the short link, e.g. [tfi.la?short](https://tfi.la?sh
 - `Ctrl`+`C` when no selection - Duplicate line
 - `Ctrl`+`X` when no selection - Delete line
 - `Ctrl`+`/` - Multi-line `//` comment / uncomment
+- `Ctrl`+`Shift`+`O` - Open any (partially) selected links in new tabs
 
 On Mac use `⌘ Command` anywhere `Ctrl` is mentioned above.
