@@ -139,7 +139,37 @@
         textarea.setSelectionRange(caret, caret)
       }
     })
-    
+
+    function open_links(text, start, end) {
+      const block_start = start - (start == end || text[start]?.trim() ? text.slice(0, start).match(/\S*$/)[0].length : 0)
+      const block_end = end + (start == end || text[end - 1]?.trim() ? text.slice(end).match(/^\S*/)[0].length : 0)
+      const words = text.slice(block_start, block_end).trim().split(/\s+/)
+      if (!navigator.userAgent.includes('Chrome'))
+        words.reverse()
+      for (let word of words) {
+        word = word.replace(/^\(|[),.]+$/g, '')
+        if (!word)
+          continue
+        if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
+          word = 'https://' + word
+
+        try {
+          new URL(word)
+          open(word, '_blank')
+        } catch {}
+      }
+    }
+
+    textarea.addEventListener('click', e => {
+      if (e.ctrlKey != is_mac && e.metaKey == is_mac && !e.shiftKey) {  // Open (partially) selected links in new tabs (based on the new caret/selection)
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const dir = textarea.selectionDirection
+        textarea.setSelectionRange(start, end, dir)  // Force Firefox to remove previous selection and move caret
+        open_links(textarea.value, start, end)
+      }
+    })
+
     textarea.addEventListener('pointerdown', () => prev_key = null)
 
     function get_layout_key(e) {
@@ -157,7 +187,7 @@
                e.key == 'Escape' && !e.shiftKey
               ) && !e.ctrlKey && !e.metaKey
               || ((e.key == '/' || e.code == 'Slash') && !e.shiftKey ||
-                  layout_key == 'o' && e.shiftKey
+                  'o'.includes(layout_key) && e.shiftKey
               ) && e.ctrlKey != is_mac && e.metaKey == is_mac
              )) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape')
@@ -215,8 +245,8 @@
             textarea.setSelectionRange(caret, caret)
         }
 
-        else if (e.key == 'Tab') {  // Indent / unindent at caret or multi-line for selection
-          if (end > start) {
+        else if (e.key == 'Tab') {  // Indent / unindent at caret or multi-line for selection (but `Tab` will replace a selection of only tabs and spaces)
+          if (end > start && (e.shiftKey || text.slice(start, end).match(/[^\t ]/))) {
             const block_start = safe_last_index_of_newline(text, start)
             let indented = text.slice(block_start, end)
             let new_start
@@ -294,25 +324,8 @@
           }
         }
 
-        else if (layout_key == 'o') {  // Open any (partially) selected links in new tabs
-          const block_start = start - (start == end || text[start]?.trim() ? text.slice(0, start).match(/\S*$/)[0].length : 0)
-          const block_end = end + (start == end || text[end - 1]?.trim() ? text.slice(end).match(/^\S*/)[0].length : 0)
-          const words = text.slice(block_start, block_end).trim().split(/\s+/)
-          if (!navigator.userAgent.includes('Chrome'))
-            words.reverse()
-          for (let word of words) {
-            word = word.replace(/^\(|[),.]+$/g, '')
-            if (!word)
-              continue
-            if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
-              word = 'https://' + word
-
-            try {
-              new URL(word)
-              open(word, '_blank')
-            } catch {}
-          }
-        }
+        else if (layout_key == 'o')  // Open (partially) selected links in new tabs
+          open_links(text, start, end)
 
         prev_key = e.key
       } else if (e.key != 'Shift')
