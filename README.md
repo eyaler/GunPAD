@@ -16,10 +16,12 @@ You can omit the `/g` from the short link, e.g. [tfi.la?short](https://tfi.la?sh
 - `Tab`, `Shift`+`Tab` - Indent / unindent at caret or multi-line for selection (but `Tab` will replace a selection of only tabs and spaces)
 - `Enter`, `Shift`+`Enter` - New line with current or coding-language-based extra indentation (`Shift` skips to line end beforehand)
 - `Home`, `Shift`+`Home` (excluding MacOS) - Move caret to indentation; if already there, move to logical line start (`Shift` for selection)
-- `End`, `Shift`+`End` (excluding MacOS) - For wrapped lines, second press moves caret to logical line end (`Shift` for selection)- `Esc` - Remove selection
+- `End`, `Shift`+`End` (excluding MacOS) - For wrapped lines, second press moves caret to logical line end (`Shift` for selection)
+- `Esc` - Remove selection
 - `Ctrl`+`C` when no selection - Duplicate line
 - `Ctrl`+`X` when no selection - Delete line
 - `Ctrl`+`/` - Multi-line `//` comment / uncomment
+- `Ctrl`+`Space` (Mac: `Option`+`Space`) - Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection
 - `Ctrl`+`Shift`+`O` or `Ctrl`+`Click` / `Ctrl`+`Select` - Open (partially) selected links in new tabs
 
-On Mac use `⌘ Command` anywhere `Ctrl` is mentioned above.
+On Mac use `⌘ Command` anywhere `Ctrl` is mentioned above, unless stated otherwise.
