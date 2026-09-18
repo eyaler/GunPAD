@@ -63,7 +63,7 @@
                    'https://peer.wallie.io/gun',
                   ]
     const gun = Gun(peers)
-    const id = (location.hash || location.search.split(/[=&]/)[0]).slice(1) || 'gunpad'
+    const id = (location.hash || (location.search.startsWith('?_ijt') ? '' : location.search.split(/[=&]/)[0])).slice(1) || 'gunpad'
     const pad = gun.get(id)
 
     const ws = '\t '
@@ -226,7 +226,8 @@
            ) && !e.ctrlKey && !e.metaKey && !is_alt
            || (is_slash ||
                'jo'.includes(layout_key) && e.shiftKey ||
-               quote
+               quote ||
+               layout_key == 's' && !e.shiftKey
            ) && e.ctrlKey != is_mac && e.metaKey == is_mac && !is_alt
            || is_space && e.ctrlKey != is_mac && !e.metaKey && is_alt == is_mac && !e.shiftKey
           )) {
@@ -463,6 +464,14 @@
 
         else if (layout_key == 'o')  // Open (partially) selected links in new tabs
           open_links(text, start, end)
+
+        else if (layout_key == 's') {  // Save text to file
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain'}))
+          a.download = decodeURIComponent(id) + '.txt'
+          a.click()
+          setTimeout(() => URL.revokeObjectURL(a.href))
+        }
 
         prev_key = e.key
       } else if (e.key != 'Shift')
