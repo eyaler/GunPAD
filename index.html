@@ -66,6 +66,7 @@
     const id = (location.hash || location.search.split(/[=&]/)[0]).slice(1) || 'gunpad'
     const pad = gun.get(id)
 
+    const ws = '\t '
     let prev_key, changed, skip_put
 
     const is_mac = navigator.platform.startsWith('Mac') || navigator.platform.startsWith('iP')
@@ -105,8 +106,13 @@
     addEventListener('online', check_peers)
     addEventListener('offline', check_peers)
 
+    function safe_index_of_newline(text, pos) {
+      const i = text.indexOf('\n', pos)
+      return i < 0 ? text.length : i
+    }
+
     function safe_last_index_of_newline(text, pos) {
-      return (pos > 0) * (text.lastIndexOf('\n', pos - 1) + 1)
+      return (pos > 0) * (text.lastIndexOf('\n', pos - 1)+1)
     }
 
     function safe_insert(text) {  // Protect from Chromium issues: https://issues.chromium.org/issues/442551790 , https://issues.chromium.org/issues/442600643
@@ -116,49 +122,68 @@
         document.execCommand('delete')
     }
 
-    textarea.addEventListener('copy', e => {  // When no selection - Duplicate line
+    textarea.addEventListener('copy', e => {  // Without selection - Duplicate line
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
-        const text = textarea.value + '\n'
+        const text = textarea.value
         const start = textarea.selectionStart
-        const transposed = text.slice(start, text.indexOf('\n', start) + 1) + text.slice(safe_last_index_of_newline(text, start), start)
+        const transposed = text.slice(start, safe_index_of_newline(text, start)) + '\n' + text.slice(safe_last_index_of_newline(text, start), start)
         safe_insert(transposed)
         textarea.setSelectionRange(start + transposed.length, start + transposed.length)
       }
     })
 
-    textarea.addEventListener('cut', e => {  // When no selection - Delete line
+    textarea.addEventListener('cut', e => {  // Without selection - Delete line
       if (document.execCommand && textarea.selectionStart == textarea.selectionEnd) {
         e.preventDefault()
-        const text = textarea.value + '\n'
+        const text = textarea.value
         const start = textarea.selectionStart
         const line_start = safe_last_index_of_newline(text, start)
-        const line_end = text.indexOf('\n', start) + 1
-        const next_line_end = text.indexOf('\n', line_end)
-        textarea.setSelectionRange(Math.max(0, line_start + Math.min(0, next_line_end)), line_end)
+        const line_end = safe_index_of_newline(text, start)
+        const is_last = line_end == text.length
+        if (is_last)
+          textarea.setSelectionRange(Math.max(0, line_start - 1), line_end)
+        else
+          textarea.setSelectionRange(line_start, line_end + 1)
         document.execCommand('delete')
         let caret
-        if (next_line_end == -1)
+        if (is_last)
           caret = Math.min(line_start - 1, safe_last_index_of_newline(text, line_start - 1) + start - line_start)
         else
-          caret = Math.min(start, line_start + next_line_end - line_end)
+          caret = Math.min(start, line_start + safe_index_of_newline(text, line_end + 1) - line_end - 1)
         textarea.setSelectionRange(caret, caret)
       }
     })
 
+    function remove_delim(s) {
+      return s.replace(/^\(|[),.]+$/g, '')
+    }
+
+    function add_protocol(s) {
+      if (!s.includes('://') && /\w\.[^\W\d]{2,}/.test(s))
+        s = 'https://' + s
+      return s
+    }
+
     function open_links(text, start, end) {
-      const block_start = start - (start == end || text[start]?.trim() ? text.slice(0, start).match(/\S*$/)[0].length : 0)
-      const block_end = end + (start == end || text[end - 1]?.trim() ? text.slice(end).match(/^\S*/)[0].length : 0)
+      let block_start = start
+      if (start == end || text[start]?.trim())
+        while (block_start && text[block_start - 1].trim())
+          block_start--
+
+      let block_end = end
+      if (start == end || text[end - 1]?.trim())
+        while (block_end < text.length && text[block_end].trim())
+          block_end++
+
       const words = text.slice(block_start, block_end).trim().split(/\s+/)
       if (!navigator.userAgent.includes('Chrome'))
         words.reverse()
       for (let word of words) {
-        word = word.replace(/^\(|[),.]+$/g, '')
+        word = remove_delim(word)
         if (!word)
           continue
-        if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
-          word = 'https://' + word
-
+        word = add_protocol(word)
         try {
           new URL(word)
           open(word, '_blank')
@@ -179,43 +204,47 @@
 
     function get_layout_key(e) {
       let key = e.key.toLowerCase()
-      if (!e.key.match(/^[a-z]$/) && e.code.match(/^Key[A-Z]$/))  // For Hebrew keyboard
+      if (!/^[a-z]$/.test(e.key) && /^Key[A-Z]$/.test(e.code))  // For Hebrew keyboard
         key = e.code[3].toLowerCase()
       return key
     }
 
     textarea.addEventListener('keydown', e => {
-      const layout_key = get_layout_key(e)
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
       const is_alt = e.getModifierState?.('AltGraph') || e.altKey
-      const is_slash = e.key == '/' || e.code == 'Slash'
+      const is_slash = e.key == '/' && (['Slash', 'NumpadDivide'].includes(e.code) || e.shiftKey) || e.key == '.' && e.code == 'Slash'  // Physical key; `.` for Hebrew/Russian/Turkish; `Ctrl`+`Shift`+`7` for German
       const is_space = e.key == ' ' || e.code == 'Space'
+      const quote = '\'"`'.includes(e.key) ? e.key : e.ctrlKey || e.metaKey ? {Quote: e.shiftKey ? '"' : "'", Backquote: '`'}[e.code] : ''
+      const layout_key = get_layout_key(e)
+
       if (document.execCommand &&
           ((['Enter', 'Tab'].includes(e.key) ||
             ['Home', 'End'].includes(e.key) && !is_mac ||
-            e.key == 'Escape' && !e.shiftKey
+            e.key == 'Escape' && !e.shiftKey ||
+            quote && start != end
            ) && !e.ctrlKey && !e.metaKey && !is_alt
-           || (is_slash && !e.shiftKey ||
-               'o'.includes(layout_key) && e.shiftKey
+           || (is_slash ||
+               'jo'.includes(layout_key) && e.shiftKey ||
+               quote
            ) && e.ctrlKey != is_mac && e.metaKey == is_mac && !is_alt
            || is_space && e.ctrlKey != is_mac && !e.metaKey && is_alt == is_mac && !e.shiftKey
           )) {
-        if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape')
+        if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape' && !quote)
           e.preventDefault()
         const text = textarea.value
-        const start = textarea.selectionStart
-        const end = textarea.selectionEnd
         const dir = textarea.selectionDirection
 
         if (e.key == 'Enter') {  // New line with current or coding-language-based extra indentation
           let caret = start
-          let slice_end
           if (e.shiftKey)  // Skip to line end beforehand
-            caret = textarea.selectionStart = textarea.selectionEnd = (text + '\n').indexOf('\n', dir == 'backward' ? start : end)
-          else
-            slice_end = start
+            caret = textarea.selectionStart = textarea.selectionEnd = safe_index_of_newline(text, dir == 'backward' ? start : end)
           const line_start = safe_last_index_of_newline(text, caret)
-          let indent = '\n' + text.slice(line_start, slice_end).match(/^[\t ]*/)
-          if (text.slice(line_start, caret).match(/([{[(:]|=>|<(div|g|p)\b[^>]*>)\s*$/))
+          let i = line_start
+          while (i < caret && ws.includes(text[i]))
+            i++
+          let indent = '\n' + text.slice(line_start, i)
+          if (/([{[(:]|=>|<(div|g|p)\b[^>]*>)\s*$/.test(text.slice(line_start, caret)))
             indent += indent.endsWith('  ') ? '  ' : '\t'
           safe_insert(indent)
         }
@@ -223,8 +252,11 @@
         else if (e.key == 'Home') {  // Move caret to indentation; if already there, move to logical line start (`Shift` for selection)
           let [caret, anti_caret] = dir == 'backward' ? [start, end] : [end, start]
           const line_start = safe_last_index_of_newline(text, caret)
-          const whitespace = text.slice(line_start).match(/^[\t ]*/)[0].length
-          const indent = line_start + (caret == line_start + whitespace ? 0 : whitespace)
+          let indent = line_start
+          while (ws.includes(text[indent]))
+            indent++
+          if (indent == caret)
+            indent = line_start
           caret = Math.max(start, anti_caret)
           if (e.shiftKey && caret < indent) {
             textarea.selectionStart = caret
@@ -239,7 +271,7 @@
         }
 
         else if (e.key == 'End' && prev_key == 'End') {  // For wrapped lines, second press moves caret to logical line end (`Shift` for selection)
-          const caret = (text + '\n').indexOf('\n', start)
+          const caret = safe_index_of_newline(text, start)
           if (e.shiftKey && textarea.selectionEnd > caret && dir == 'backward')
             textarea.selectionStart = caret
           else {
@@ -255,20 +287,32 @@
         }
 
         else if (e.key == 'Tab') {  // Indent / unindent at caret or multi-line for selection (but `Tab` will replace a selection of only tabs and spaces)
-          if (end > start && (e.shiftKey || text.slice(start, end).match(/[^\t ]/))) {
+          let has_text
+          for (let i = start; i < end; i++)
+            if (!ws.includes(text[i])) {
+              has_text = true
+              break
+            }
+
+          if (end > start && (e.shiftKey || has_text)) {
             const block_start = safe_last_index_of_newline(text, start)
-            let indented = text.slice(block_start, end)
+            const block = text.slice(block_start, end)
+            let indented = block
             let new_start
+
             if (e.shiftKey) {
               indented = indented.replace(/(?<=^|\n(?!$))(\t| {1,2})/g, '')
-              new_start = Math.max(start - 1, block_start)
+              new_start = Math.max(start - ws.includes(block[0])*(block.startsWith('  ')+1), block_start)
             } else {
               indented = '\t' + indented.replace(/\n(?!$)/g, '\n\t')
               new_start = start + 1
             }
-            textarea.selectionStart = block_start
-            safe_insert(indented)
-            textarea.setSelectionRange(new_start, block_start + indented.length, dir)
+
+            if (indented != block) {
+              textarea.selectionStart = block_start
+              safe_insert(indented)
+              textarea.setSelectionRange(new_start, block_start + indented.length, dir)
+            }
           } else if (!e.shiftKey)
             safe_insert('\t')
           else if (text[start - 1] == '\t')
@@ -298,19 +342,9 @@
 
         else if (is_slash || is_space) {
           const block_start = start == end || !is_space ? safe_last_index_of_newline(text, start) : start
-          const block_end = start == end || text[end - 1] != '\n' && !is_space ? (text + '\n').indexOf('\n', end) : end
+          const block_end = start == end || text[end - 1] != '\n' && !is_space ? safe_index_of_newline(text, end) : end
 
-          if (is_space) {  // Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection
-            if (start == end)
-              textarea.setSelectionRange(block_start, block_end)
-            const selected = text.slice(textarea.selectionStart, textarea.selectionEnd)
-            const unmangled = Array.from(selected, c => keymap[c.toLowerCase()] || c).join('')
-            if (unmangled != selected)
-              safe_insert(unmangled)
-            textarea.setSelectionRange(start, end, dir)
-          }
-
-          else if (is_slash) {  // Multi-line `//` comment / uncomment
+          if (is_slash) {  // Multi-line `//` comment / uncomment
             const block = text.slice(block_start, block_end)
             if (start == end && end == block_end && !block.trim())
               safe_insert('// ')
@@ -329,6 +363,7 @@
                   }
                 return p2 ? p1 : p1 + '// '
               })
+
               if (offsets.length) {
                 textarea.setSelectionRange(block_start, block_end)
                 if (uniform_block_comments && offsets.length > 1 && missing)
@@ -340,6 +375,89 @@
                 textarea.setSelectionRange(new_start, new_end, dir)
               }
             }
+          }
+
+          else if (is_space) {  // Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection
+            if (start == end)
+              textarea.setSelectionRange(block_start, block_end)
+            const selected = text.slice(textarea.selectionStart, textarea.selectionEnd)
+            const unmangled = Array.from(selected, c => keymap[c.toLowerCase()] || c).join('')
+            if (unmangled != selected)
+              safe_insert(unmangled)
+            textarea.setSelectionRange(start, end, dir)
+          }
+        }
+
+        else if (quote) {  // Quote / unquote selection or expression at caret (whitespace and , : stay outside)
+          const swallow = ws + '\n,:'
+          let block_start = start
+          let block_end = end
+          if (start == end) {
+            const is_stop = i => (swallow + '()[]{}`').includes(text[i]) || text[i] == '"' && !(/[\p{L}\p{M}']/u.test(text[i - 1] || '') && /\p{L}/u.test(text[i + 1] || ''))
+            while (block_start && !is_stop(block_start - 1))
+              block_start--
+            while (block_end < text.length && !is_stop(block_end))
+              block_end++
+          }
+          while (block_start < block_end && swallow.includes(text[block_start]))
+            block_start++
+          while (block_end > block_start && swallow.includes(text[block_end - 1]))
+            block_end--
+          if (block_start != block_end) {
+            e.preventDefault()
+            const open = text[block_start - 1] == quote ? block_start - 1 : block_start
+            const close = text[block_end] == quote ? block_end : block_end - 1
+            if (open < close - 1 && text[open] == quote && text[close] == quote) {
+              textarea.setSelectionRange(open, close + 1)
+              safe_insert(text.slice(open + 1, close))
+              if (start == end)
+                textarea.setSelectionRange(start - (start > open) - (start > close), start - (start > open) - (start > close))
+              else
+                textarea.setSelectionRange(open, close - 1, dir)
+            } else {
+              textarea.setSelectionRange(block_start, block_end)
+              safe_insert(quote + text.slice(block_start, block_end) + quote)
+              if (start == end)
+                textarea.setSelectionRange(start + 1, start + 1)
+              else
+                textarea.setSelectionRange(block_start + 1, block_end + 1, dir)
+            }
+          }
+        }
+
+        else if (layout_key == 'j') {  // Join next line / selected lines with a single space
+          const line_end = safe_index_of_newline(text, start)
+
+          let gap_start = line_end
+          while (ws.includes(text[gap_start - 1]))
+            gap_start--
+          const block_start = Math.min(gap_start, start)
+
+          let gap_end = end > line_end ? safe_last_index_of_newline(text, end) : line_end + 1
+          while (ws.includes(text[gap_end]))
+            gap_end++
+          const block_end = Math.max(gap_end, end)
+
+          const block = text.slice(block_start, block_end)
+          let joined = block
+
+          if (block.includes('\n')) {
+            joined = block.replace(/\s*\n\s*/g, ' ')
+            if ((!gap_start || text[gap_start - 1] == '\n') && joined.startsWith(' '))
+              joined = joined.slice(1)
+            if ((gap_end == text.length || text[gap_end] == '\n') && joined.endsWith(' '))
+              joined = joined.slice(0, -1)
+          }
+
+          if (joined != block) {
+            textarea.setSelectionRange(block_start, block_end)
+            safe_insert(joined)
+            const delta = joined.length - block.length
+            const map_pos = (p, up) =>
+              p <= gap_start ? p :
+              p >= gap_end ? p + delta :
+              up ? gap_end + delta : gap_start
+            textarea.setSelectionRange(map_pos(start), map_pos(end, end > start), dir)
           }
         }
 
@@ -362,11 +480,10 @@
       const new_text = data.content
       if (location.search && !location.search.startsWith('?_ijt') && !location.hash && !changed)
         for (let word of new_text.trim().split(/\s+/)) {
-          word = word.replace(/^\(|[),.]+$/g, '')
+          word = remove_delim(word)
           if (!word)
             continue
-          if (!word.includes('://') && word.match(/\w\.[^\W\d]{2,}/))
-            word = 'https://' + word
+          word = add_protocol(word)
           try {
             location = new URL(word)
             break
