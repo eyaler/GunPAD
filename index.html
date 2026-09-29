@@ -218,19 +218,18 @@
       const quote = '\'"`'.includes(e.key) ? e.key : e.ctrlKey || e.metaKey ? {Quote: e.shiftKey ? '"' : "'", Backquote: '`'}[e.code] : ''
       const layout_key = get_layout_key(e)
 
-      if (document.execCommand &&
-          ((['Enter', 'Tab'].includes(e.key) ||
-            ['Home', 'End'].includes(e.key) && !is_mac ||
-            e.key == 'Escape' && !e.shiftKey ||
-            quote && start != end
-           ) && !e.ctrlKey && !e.metaKey && !is_alt
-           || (is_slash ||
-               'jo'.includes(layout_key) && e.shiftKey ||
-               quote ||
-               layout_key == 's' && !e.shiftKey
-           ) && e.ctrlKey != is_mac && e.metaKey == is_mac && !is_alt
-           || is_space && e.ctrlKey != is_mac && !e.metaKey && is_alt == is_mac && !e.shiftKey
-          )) {
+      if (((quote && start != end ||
+           ['Enter', 'Tab'].includes(e.key)) && document.execCommand ||
+           ['Home', 'End'].includes(e.key) && !is_mac ||
+           e.key == 'Escape' && !e.shiftKey
+          ) && !e.ctrlKey && !e.metaKey && !is_alt
+          || ((is_slash || quote ||
+              layout_key == 'j' && e.shiftKey) && document.execCommand ||
+              layout_key == 'o' && e.shiftKey ||
+              layout_key == 's' && !e.shiftKey
+          ) && e.ctrlKey != is_mac && e.metaKey == is_mac && !is_alt
+          || is_space && e.ctrlKey != is_mac && !e.metaKey && is_alt == is_mac && !e.shiftKey && document.execCommand
+          ) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape' && !quote)
           e.preventDefault()
         const text = textarea.value
