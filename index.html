@@ -404,18 +404,32 @@
             block_start++
           while (block_end > block_start && swallow.includes(text[block_end - 1]))
             block_end--
-          if (block_start != block_end) {
+          if (block_start != block_end || start == end && text[start - 1] == quote && text[start] == quote) {
             e.preventDefault()
-            const open = text[block_start - 1] == quote ? block_start - 1 : block_start
-            const close = text[block_end] == quote ? block_end : block_end - 1
-            if (open < close - 1 && text[open] == quote && text[close] == quote) {
-              textarea.setSelectionRange(open, close + 1)
-              safe_insert(text.slice(open + 1, close))
+            let open = text[block_start - 1] == quote ? block_start - 1 : block_start
+            let close = text[block_end] == quote ? block_end : block_end - 1
+            if (start != end)
+              [open, close] = [text[block_start] == quote ? block_start : start - 1, text[block_end - 1] == quote ? block_end - 1 : end]
+            else if (text[start - 1] == quote && text[start] == quote && text.slice(block_start, block_end) == quote.repeat(block_end - block_start))
+              [open, close] = [start - 1, start]
+            if (open < close && text[open] == quote && text[close] == quote) {  // Unquote
+              let open_end = open
+              while (open_end + 1 < close && text[open_end + 1] == quote)
+                open_end++
+              let close_start = close
+              while (close_start - 1 > open && text[close_start - 1] == quote)
+                close_start--
+              const n = open_end < close_start && text.slice(open_end - 2, open_end) == quote + quote && text.slice(close_start + 1, close_start + 3) == quote + quote ? 3 : 1
+              const a = n > 1 ? open_end - 2 : open
+              const b = n > 1 ? close_start : close
+              textarea.setSelectionRange(a, b + n)
+              safe_insert(text.slice(a + n, b))
+              const new_start = Math.max(start - n, a)
               if (start == end)
-                textarea.setSelectionRange(start - (start > open) - (start > close), start - (start > open) - (start > close))
+                textarea.selectionStart = textarea.selectionEnd = Math.min(new_start, b - n)
               else
-                textarea.setSelectionRange(open, close - 1, dir)
-            } else {
+                textarea.setSelectionRange(new_start, b - n, dir)
+            } else {  // Quote
               textarea.setSelectionRange(block_start, block_end)
               safe_insert(quote + text.slice(block_start, block_end) + quote)
               if (start == end)
