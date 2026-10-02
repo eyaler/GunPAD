@@ -24,7 +24,7 @@
       inset: 0;
       margin: 0;
       outline: none;
-      padding: 1rem;
+      padding: 1em;
       position: absolute;
       resize: none;
       tab-size: 2ch;
@@ -47,10 +47,72 @@
     .ok {
       visibility: hidden;
     }
+
+    #help {
+      overscroll-behavior: none;
+      padding: 0;
+   }
+
+    #help > div {
+      padding-bottom: 1em;
+      padding-inline: 3em;
+    }
+
+    #help > div > button {
+      border: none;
+      height: 2em;
+      margin-inline-start: calc(100% + .8em);
+      position: sticky;
+      top: 1.2em;
+      width: 2em;
+    }
+
+    #help > div > button:not(:hover) {
+      background-color: transparent;
+    }
+
+    #help > div > button:focus {
+      outline: auto;
+    }
+
+    #help > div > ul {
+      line-height: 1.6;
+      list-style-type: none;
+      margin: 0;
+      --indent: 4em;
+      padding-inline-start: var(--indent);
+    }
+
+    #help > div > ul > li {
+      margin-block: .6em;
+      text-indent: calc(var(--indent) * -1);
+    }
+
+    kbd > kbd {
+      border: 1px solid;
+      border-radius: 3px;
+      padding: 1px 2px 0;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
   <textarea id="textarea" autocomplete="off" autofocus dir="auto" placeholder="Type here."></textarea>
+  <dialog id="help" closedby="any" onclick="if (event.target == this) close()" tabindex="-1" aria-keyshortcuts="F1">  <!-- Fix for Firefox issue: https://bugzilla.mozilla.org/show_bug.cgi?id=1934522 -->
+    <div>
+      <button onclick="help.close()">x</button>
+      <ul>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>C</kbd></kbd> without selection – Duplicate line (clipboard untouched)</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>X</kbd></kbd> without selection – Delete line (clipboard untouched)</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>/</kbd></kbd> – Multi-line <code>//</code> comment / uncomment</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>'</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>"</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>`</kbd></kbd> – Quote / unquote selection or expression at caret, bare quote also works for selection (whitespace and <code>,</code> <code>:</code> stay outside)</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>Space</kbd></kbd> – Unmangle English &harr; Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd></kbd> – Join next line / selected lines with a single space</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>Click</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>Select with pointer</kbd></kbd> – Open link under caret or (partially) selected links in new tabs</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>S</kbd></kbd> – Save text to file</li>
+      </ul>
+    </div>
+  </dialog>
   <div id="banner" class="ok"></div>
   <script>
     'use strict'
@@ -70,6 +132,8 @@
     let prev_key, changed, skip_put
 
     const is_mac = navigator.platform.startsWith('Mac') || navigator.platform.startsWith('iP')
+    if (is_mac)
+      help.innerHTML = help.innerHTML.replace('<kbd>Ctrl</kbd>+<kbd>Space</kbd>', '<kbd>⌥ Option</kbd>+<kbd>Space</kbd>').replaceAll('Ctrl', '⌘ Command')
 
     let en = 'qwertyuiopasdfghjkl;zxcvbnm'
     const he = 'ץןקראטותםפשדגכעיחלךףזסבהנמצ'.slice(0, en.length)
@@ -192,7 +256,7 @@
     }
 
     textarea.addEventListener('click', e => {
-      if (e.ctrlKey != is_mac && e.metaKey == is_mac && !e.shiftKey) {  // Open (partially) selected links in new tabs (based on the new caret/selection)
+      if (e.ctrlKey != is_mac && e.metaKey == is_mac && !e.shiftKey) {  // Open link under caret or (partially) selected links in new tabs (based on the NEW caret/selection)
         const start = textarea.selectionStart
         const end = textarea.selectionEnd
         textarea.setSelectionRange(start, end, textarea.selectionDirection)  // Force Firefox to remove previous selection and move caret
@@ -221,7 +285,7 @@
       if (((quote && start != end ||
            ['Enter', 'Tab'].includes(e.key)) && document.execCommand ||
            ['Home', 'End'].includes(e.key) && !is_mac ||
-           e.key == 'Escape' && !e.shiftKey
+           ['Escape', 'F1'].includes(e.key) && !e.shiftKey
           ) && !e.ctrlKey && !e.metaKey && !is_alt
           || ((is_slash || quote ||
               layout_key == 'j' && e.shiftKey) && document.execCommand ||
@@ -285,6 +349,9 @@
             const caret = dir == 'forward' ? end : start
             textarea.setSelectionRange(caret, caret)
         }
+
+        else if (e.key == 'F1')  // Help
+          help.showModal()
 
         else if (e.key == 'Tab') {  // Indent / unindent at caret or multi-line for selection (but `Tab` will replace a selection of only tabs and spaces)
           let has_text
@@ -475,7 +542,7 @@
           }
         }
 
-        else if (layout_key == 'o')  // Open (partially) selected links in new tabs
+        else if (layout_key == 'o')  // Open link under caret or (partially) selected links in new tabs
           open_links(text, start, end)
 
         else if (layout_key == 's') {  // Save text to file
@@ -495,6 +562,13 @@
       changed = true
       if (!skip_put)
         pad.put({content: textarea.value})
+    })
+
+    help.addEventListener('keydown', e => {
+      if (e.key == 'F1' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.getModifierState?.('AltGraph')) {
+          e.preventDefault()
+          help.close()
+        }
     })
 
     pad.on(data => {
