@@ -107,6 +107,7 @@
         <li><kbd><kbd>Ctrl</kbd>+<kbd>/</kbd></kbd> – Multi-line <code>//</code> comment / uncomment</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>'</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>"</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>`</kbd></kbd> – Quote / unquote selection or expression at caret, bare quote also works for selection (whitespace and <code>,</code> <code>:</code> stay outside)</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>Space</kbd></kbd> – Unmangle English &harr; Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd></kbd> – Remove Hebrew diacritics</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd></kbd> – Join next line / selected lines with a single space</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>Click</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>Select with pointer</kbd></kbd> – Open link under caret or (partially) selected links in new tabs</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>S</kbd></kbd> – Save text to file</li>
@@ -133,7 +134,7 @@
 
     const is_mac = navigator.platform.startsWith('Mac') || navigator.platform.startsWith('iP')
     if (is_mac)
-      help.innerHTML = help.innerHTML.replace('<kbd>Ctrl</kbd>+<kbd>Space</kbd>', '<kbd>⌥ Option</kbd>+<kbd>Space</kbd>').replaceAll('Ctrl', '⌘ Command')
+      help.innerHTML = help.innerHTML.replace(/Ctrl(?=.*<kbd>Space<\/kbd>)/g, '⌥ Option').replaceAll('Ctrl', '⌘ Command').replaceAll('Shift', '⇧ Shift')
 
     let en = 'qwertyuiopasdfghjkl;zxcvbnm'
     const he = 'ץןקראטותםפשדגכעיחלךףזסבהנמצ'.slice(0, en.length)
@@ -219,6 +220,10 @@
       }
     })
 
+    function remove_diacritics(s) {
+      return s.replace(/[\u200c\u200d]*[\u034f\u0591-\u05bd\u05bf-\u05c7]+[\u200c\u200d]*/g, '')
+    }
+
     function remove_delim(s) {
       return s.replace(/^\(|[),.]+$/g, '')
     }
@@ -292,7 +297,7 @@
               layout_key == 'o' && e.shiftKey ||
               layout_key == 's' && !e.shiftKey
           ) && e.ctrlKey != is_mac && e.metaKey == is_mac && !is_alt
-          || is_space && e.ctrlKey != is_mac && !e.metaKey && is_alt == is_mac && !e.shiftKey && document.execCommand
+          || is_space && e.ctrlKey != is_mac && !e.metaKey && is_alt == is_mac && document.execCommand
           ) {
         if ((e.key != 'End' || prev_key == 'End') && e.key != 'Escape' && !quote)
           e.preventDefault()
@@ -444,14 +449,15 @@
             }
           }
 
-          else if (is_space) {  // Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection
-            if (start == end)
+          else if (is_space) {  // Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection; with Shift remove Hebrew diacritics instead
+            const selected = text.slice(block_start, block_end)
+            const fixed = e.shiftKey ? remove_diacritics(selected) : Array.from(selected, c => keymap[c.toLowerCase()] || c).join('')
+            if (fixed != selected) {
               textarea.setSelectionRange(block_start, block_end)
-            const selected = text.slice(textarea.selectionStart, textarea.selectionEnd)
-            const unmangled = Array.from(selected, c => keymap[c.toLowerCase()] || c).join('')
-            if (unmangled != selected)
-              safe_insert(unmangled)
-            textarea.setSelectionRange(start, end, dir)
+              safe_insert(fixed)
+              const new_start = start == end && e.shiftKey ? block_start + remove_diacritics(text.slice(block_start, start)).length : start
+              textarea.setSelectionRange(new_start, start == end ? new_start : start + fixed.length, dir)
+            }
           }
         }
 
