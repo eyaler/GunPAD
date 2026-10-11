@@ -106,7 +106,7 @@
         <li><kbd><kbd>Ctrl</kbd>+<kbd>X</kbd></kbd> without selection – Delete line (clipboard untouched)</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>/</kbd></kbd> – Multi-line <code>//</code> comment / uncomment</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>'</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>"</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>`</kbd></kbd> – Quote / unquote selection or expression at caret, bare quote also works for selection (whitespace and <code>,</code> <code>:</code> stay outside)</li>
-        <li><kbd><kbd>Ctrl</kbd>+<kbd>Space</kbd></kbd> – Unmangle English &harr; Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection</li>
+        <li><kbd><kbd>Ctrl</kbd>+<kbd>Space</kbd></kbd> – Unmangle English &harr; Hebrew (assuming SI 1452-2 aka ארקן) keyboard language mistypes for line or selection</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd></kbd> – Remove Hebrew diacritics</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd></kbd> – Join next line / selected lines with a single space</li>
         <li><kbd><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>Click</kbd></kbd> / <kbd><kbd>Ctrl</kbd>+<kbd>Select with pointer</kbd></kbd> – Open link under caret or (partially) selected links in new tabs</li>
@@ -449,7 +449,7 @@
             }
           }
 
-          else if (is_space) {  // Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection; with Shift remove Hebrew diacritics instead
+          else if (is_space) {  // Unmangle English <-> Hebrew (assuming SI 1452-2 aka ארקן) keyboard language mistypes for line or selection; with Shift remove Hebrew diacritics instead
             const selected = text.slice(block_start, block_end)
             const fixed = e.shiftKey ? remove_diacritics(selected) : Array.from(selected, c => keymap[c.toLowerCase()] || c).join('')
             if (fixed != selected) {

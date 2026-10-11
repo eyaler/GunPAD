@@ -26,7 +26,7 @@ You can omit the `/g` from the short link, e.g. [tfi.la?short](https://tfi.la?sh
 
 - `Ctrl`+`/` – Multi-line `//` comment / uncomment
 - `Ctrl`+`'` / `Ctrl`+`"` / `Ctrl`+`` ` `` – Quote / unquote selection or expression at caret, bare quote also works for selection (whitespace and `,` `:` stay outside)
-- `Ctrl`+`Space` (Mac: `⌥ Option`+`Space`) – Unmangle English <-> Hebrew (assuming SI 1452-2 aka ARKN) keyboard language mistypes for line or selection
+- `Ctrl`+`Space` (Mac: `⌥ Option`+`Space`) – Unmangle English <-> Hebrew (assuming SI 1452-2 aka ארקן) keyboard language mistypes for line or selection
 - `Ctrl`+`Shift`+`Space` (Mac: `⌥ Option`+`⇧ Shift`+`Space`) – Remove Hebrew diacritics
 
 
