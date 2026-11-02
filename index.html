@@ -598,7 +598,9 @@
         const start = textarea.selectionStart
         const end = textarea.selectionEnd
         const dir = textarea.selectionDirection
+        const scroll_top = textarea.scrollTop
         textarea.value = new_text
+        requestAnimationFrame(() => textarea.scrollTop = scroll_top)  // Revert Firefox's scrolling to the caret
         const delta = new_text.length - text.length
         if (text.slice(0, end) == new_text.slice(0, end))
           textarea.setSelectionRange(start, end, dir)
